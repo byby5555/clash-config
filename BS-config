@@ -1,0 +1,156 @@
+# 注意规则在满足自己需求情况下，尽量做到精简，不要过度复杂，以免影响性能。
+
+# 机场订阅
+proxy-providers
+  Airport1
+    url 订阅信息
+    type http
+    interval 3600
+    health-check
+      enable true
+      url httpswww.gstatic.comgenerate_204
+      interval 300
+    proxy 直连
+
+# 节点信息
+proxies
+  - {name 直连, type direct}
+
+# 全局配置 
+port 7890
+socks-port 7891
+redir-port 7892
+mixed-port 7893
+tproxy-port 7894
+allow-lan true
+bind-address 
+ipv6 false
+unified-delay true
+tcp-concurrent true
+log-level warning
+find-process-mode 'off'
+# interface-name en0
+global-client-fingerprint chrome
+keep-alive-idle 600
+keep-alive-interval 15
+disable-keep-alive false
+profile
+  store-selected true
+  store-fake-ip true
+
+# 控制面板
+external-controller 0.0.0.09090
+secret 
+external-ui etcnikkirun
+external-ui-name zashboard
+external-ui-url httpsgithub.comZephyrusozashboardarchiverefsheadsgh-pages.zip
+
+# 嗅探
+sniffer
+  enable true
+  sniff
+    HTTP
+      ports [80, 8080-8880]
+      override-destination true
+    TLS
+      ports [443, 8443]
+    QUIC
+      ports [443, 8443]
+  force-domain
+    - +.v2ex.com
+  skip-domain
+    - +.baidu.com
+
+# 入站  
+tun
+  enable true
+  # systemgvisormixed
+  stack mixed
+  dns-hijack [any53, tcpany53]
+  auto-route true
+  auto-redirect true
+  auto-detect-interface true
+
+# DNS模块
+# [保留原有 DNS 和后续配置内容不变，可补全下方 DNS 与 rule-providers 内容]
+
+# 合并 Airport1 节点池的 proxy-groups 示例：
+proxy-groups
+  - name 🌐 全部节点
+    type select
+    use
+      - Airport1
+  - name ♻️ 自动选择
+    type url-test
+    use
+      - Airport1
+    filter ^((!(直连)).)$
+    tolerance 20
+    interval 300
+  - name 🇭🇰 香港节点
+    type select
+    use
+      - Airport1
+    filter (i)港hkhongkonghong kong
+  - name 🇯🇵 日本节点
+    type select
+    use
+      - Airport1
+    filter (i)日jpjapan
+  - name 🇺🇲 美国节点
+    type select
+    use
+      - Airport1
+    filter (i)美usunitedstatesunited states
+  - name 🔯 香港故转
+    type fallback
+    use
+      - Airport1
+    filter (=.(港HK(i)Hong))^((!(台日韩新深美)).)$
+    interval 300
+    tolerance 20
+  - name 🔯 日本故转
+    type fallback
+    use
+      - Airport1
+    filter (=.(日JP(i)Japan))^((!(港台韩新美)).)$
+    interval 300
+    tolerance 20
+  - name ♻️ 香港自动
+    type url-test
+    use
+      - Airport1
+    filter (=.(港HK(i)Hong))^((!(台日韩新深美)).)$
+    interval 300
+    tolerance 20
+  - name ♻️ 日本自动
+    type url-test
+    use
+      - Airport1
+    filter (=.(日JP(i)Japan))^((!(港台韩新美)).)$
+    interval 300
+    tolerance 20
+  - name ♻️ 美国自动
+    type url-test
+    use
+      - Airport1
+    filter (=.(美US(i)StatesAmerica))^((!(港台日韩新)).)$
+    interval 300
+    tolerance 20
+  - name 🚀 默认代理
+    type select
+    proxies
+      - 🔯 香港故转
+      - 🔯 日本故转
+      - ♻️ 香港自动
+      - ♻️ 日本自动
+      - ♻️ 美国自动
+      - ♻️ 自动选择
+      - 🇭🇰 香港节点
+      - 🇯🇵 日本节点
+      - 🇺🇲 美国节点
+      - 🌐 全部节点
+      - 直连
+  - {name 🎯 直连, type select, proxies [直连, 🚀 默认代理]}
+
+# 更多 rule 与 rule-providers 配置按原样继续填写
